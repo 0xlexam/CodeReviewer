@@ -27,45 +27,50 @@ interface ReviewSession {
   status: 'OPEN' | 'CLOSED';
 }
 
-let submissions: Submission[] = [];
-let comments: Comment[] = [];
-let reviewSessions: ReviewSession[] = [];
+let submissions: Map<string, Submission> = new Map();
+let comments: Map<string, Comment[]> = new Map();
+let reviewSessions: Map<string, ReviewSession[]> = new Map();
 
 app.post('/api/submissions', (req: Request, res: Response) => {
   const submission: Submission = req.body;
-  submissions.push(submission);
+  submissions.set(submission.id, submission);
   res.status(201).send(submission);
 });
 
 app.get('/api/submissions', (req: Request, res: Response) => {
-  res.status(200).send(submissions);
+  res.status(200).send(Array.from(submissions.values()));
 });
 
 app.post('/api/comments', (req: Request, res: Response) => {
   const comment: Comment = req.body;
-  comments.push(comment);
+  const submissionComments = comments.get(comment.submissionId) || [];
+  submissionComments.push(comment);
+  comments.set(comment.submissionId, submissionComments);
   res.status(201).send(comment);
 });
 
 app.get('/api/comments/:submissionId', (req: Request, res: Response) => {
   const submissionId = req.params.submissionId;
-  const submissionComments = comments.filter(comment => comment.submissionId === submissionId);
+  const submissionComments = comments.get(submissionId) || [];
   res.status(200).send(submissionComments);
 });
 
 app.post('/api/reviewSessions', (req: Request, res: Response) => {
   const reviewSession: ReviewSession = req.body;
-  reviewSessions.push(reviewSession);
+  const submissionReviewSessions = reviewSessions.get(reviewSession.submissionId) || [];
+  submissionReviewSessions.push(reviewSession);
+  reviewSessions.set(reviewSession.submissionId, submissionReviewSessions);
   res.status(201).send(reviewSession);
 });
 
 app.get('/api/reviewSessions', (req: Request, res: Response) => {
-  res.status(200).send(reviewSessions);
+  const allSessions = Array.from(reviewSessions.values()).flat();
+  res.status(200).send(allSessions);
 });
 
 app.get('/api/reviewSessions/:submissionId', (req: Request, res: Response) => {
   const submissionId = req.params.submissionId;
-  const submissionReviewSessions = reviewSessions.filter(session => session.submissionId === submissionId);
+  const submissionReviewSessions = reviewSessions.get(submissionId) || [];
   res.status(200).send(submissionReviewSessions);
 });
 
