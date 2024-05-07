@@ -11,7 +11,6 @@ interface CodeSnippet {
 }
 
 class CodeManager {
-
     private storagePath: string;
     private snippets: Map<string, CodeSnippet[]> = new Map();
 
@@ -28,19 +27,27 @@ class CodeManager {
         try {
             const files = fs.readdirSync(this.storagePath);
             files.forEach(file => {
-                const content = fs.readFileSync(path.join(this.storagePath, file), 'utf8');
-                const snippets: CodeSnippet[] = JSON.parse(content);
-                this.snippets.set(file.replace('.json', ''), snippets);
+                try {
+                    const content = fs.readFileSync(path.join(this.storagePath, file), 'utf8');
+                    const snippets: CodeSnippet[] = JSON.parse(content);
+                    this.snippets.set(file.replace('.json', ''), snippets);
+                } catch (error) {
+                    console.error(`Failed to read or parse ${file}:`, error);
+                }
             });
         } catch (error) {
-            console.error("Failed to load snippets: ", error);
+            console.error("Failed to load snippets directory: ", error);
         }
     }
 
     private saveSnippets(id: string): void {
-        if (this.snippets.has(id)) {
-            const filePath = path.join(this.storagePath, `${id}.json`);
-            fs.writeFileSync(filePath, JSON.stringify(this.snippets.get(id), null, 2), 'utf8');
+        try {
+            if (this.snippets.has(id)) {
+                const filePath = path.join(this.storagePath, `${id}.json`);
+                fs.writeFileSync(filePath, JSON.stringify(this.snippets.get(id), null, 2), 'utf8');
+            }
+        } catch (error) {
+            console.error(`Failed to save snippets for id ${id}:`, error);
         }
     }
 
@@ -82,9 +89,14 @@ class CodeManager {
 
     public deleteSnippet(id: string): boolean {
         if (!this.snippets.has(id)) return false;
-        this.snippets.delete(id);
-        const filePath = path.join(this.storagePath, `${id}.json`);
-        fs.unlinkSync(filePath);
+        try {
+            this.snippets.delete(id);
+            const filePath = path.join(this.storagePath, `${id}.json`);
+            fs.unlinkSync(filePath);
+        } catch (error) {
+            console.error(`Failed to delete snippet ${id}:`, error);
+            return false;
+        }
         return true;
     }
 }
