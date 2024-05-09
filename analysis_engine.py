@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 import json
 import requests
+from functools import lru_cache
 
 load_dotenv()
 
@@ -13,6 +14,7 @@ PERFORMANCE_ANALYSIS_TOOL_PATH = os.getenv("PERFORMANCE_TOOL_PATH")
 RESULTS_BACKEND_ENDPOINT = os.getenv("BACKEND_ENDPOINT")
 RESULTS_API_KEY = os.getenv("API_KEY")
 
+@lru_cache(maxsize=None)
 def execute_tool(command):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = process.communicate()
