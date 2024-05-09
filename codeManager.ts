@@ -44,7 +44,7 @@ class CodeManager {
         try {
             if (this.snippets.has(id)) {
                 const filePath = path.join(this.storagePath, `${id}.json`);
-                fs.writeFileSync(filePath, JSON.stringify(this.snippets.get(id), null, 2), 'utf8');
+                fs.writeFileSync(filePath, JSON.stringify(this.snippets.get(id)), 'utf8');
             }
         } catch (error) {
             console.error(`Failed to save snippets for id ${id}:`, error);
