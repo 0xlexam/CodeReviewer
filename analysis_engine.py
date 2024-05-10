@@ -7,60 +7,60 @@ from functools import lru_cache
 
 load_dotenv()
 
-LINTER_TOOL_PATH = os.getenv("LINTER_PATH")
-SECURITY_ANALYSIS_TOOL_PATH = os.getenv("SECURITY_SCANNER_PATH")
-PERFORMANCE_ANALYSIS_TOOL_PATH = os.getenv("PERFORMANCE_TOOL_PATH")
+LINTER_PATH = os.getenv("LINTER_PATH")
+SECURITY_SCANNER_PATH = os.getenv("SECURITY_SCANNER_PATH")
+PERFORMANCE_TOOL_PATH = os.getenv("PERFORMANCE_TOOL_PATH")
 
-RESULTS_BACKEND_ENDPOINT = os.getenv("BACKEND_ENDPOINT")
-RESULTS_API_KEY = os.getenv("API_KEY")
+RESULTS_ENDPOINT = os.getenv("BACKEND_ENDPOINT")
+API_KEY = os.getenv("API_KEY")
 
 @lru_cache(maxsize=None)
-def execute_tool(command):
+def run_command(command):
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = process.communicate()
     return stdout.decode('utf-8'), stderr.decode('utf-8'), process.returncode
 
-def analyze_code_directory(directory_path):
-    analysis_results = {}
+def analyze_directory(directory_path):
+    results = {}
 
-    lint_output, lint_error, lint_exit_code = execute_tool(f"{LINTER_TOOL_PATH} {directory_path}")
-    analysis_results['quality'] = {
-        'output': lint_output,
-        'error': lint_error,
-        'exit_code': lint_exit_code
+    quality_output, quality_error, quality_status = run_command(f"{LINTER_PATH} {directory_path}")
+    results['quality'] = {
+        'output': quality_output,
+        'error': quality_error,
+        'status': quality_status
     }
 
-    security_output, security_error, security_exit_code = execute_tool(f"{SECURITY_ANALYSIS_TOOL_PATH} {directory_path}")
-    analysis_results['security'] = {
+    security_output, security_error, security_status = run_command(f"{SECURITY_SCANNER_PATH} {directory_path}")
+    results['security'] = {
         'output': security_output,
         'error': security_error,
-        'exit_code': security_exit_code
+        'status': security_status
     }
 
-    performance_output, performance_error, performance_exit_code = execute_tool(f"{PERFORMANCE_ANALYSIS_TOOL_PATH} {directory_path}")
-    analysis_results['performance'] = {
+    performance_output, performance_error, performance_status = run_command(f"{PERFORMANCE_TOOL_PATH} {directory_path}")
+    results['performance'] = {
         'output': performance_output,
         'error': performance_error,
-        'exit_code': performance_exit_code
+        'status': performance_status
     }
 
-    return analysis_results
+    return results
 
-def submit_analysis_results(results):
+def post_results(results):
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {RESULTS_API_KEY}"
+        "Authorization": f"Bearer {API_KEY}"
     }
-    response = requests.post(RESULTS_BACKEND_ENDPOINT, headers=headers, data=json.dumps(results))
+    response = requests.post(RESULTS_ENDPOINT, headers=headers, data=json.dumps(results))
     return response.status_code, response.text
 
 def main():
-    target_code_directory = "/path/to/your/code"
-    results = analyze_code_directory(target_code_directory)
-    status_code, response_message = submit_analysis_results(results)
+    code_directory_path = "/path/to/your/code"
+    analysis_results = analyze_directory(code_directory_path)
+    status, response = post_results(analysis_results)
     
-    print(f"Backend response status: {status_code}")
-    print(f"Backend response: {response_message}")
+    print(f"Response status: {status}")
+    print(f"Response content: {response}")
 
 if __name__ == "__main__":
     main()
