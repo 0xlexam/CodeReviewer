@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const CodeReviewerApp = () => {
+    const API_URL = process.env.REACT_APP_API_URL;
     const [codeSubmission, setCodeSubmission] = useState('');
     const [pendingReviews, setPendingReviews] = useState([]);
     const [comments, setComments] = useState([]);
@@ -9,66 +10,50 @@ const CodeReviewerApp = () => {
     const [errorMessage, setErrorMessage] = useState("");
 
     useEffect(() => {
-        const fetchReviews = async () => {
-            try {
-                const response = await axios.get(`${process.env.REACT_APP_API_URL}/reviews/pending`);
-                setPendingReviews(response.data);
-            } catch (error) {
-                console.error("Error fetching reviews:", error);
-                setErrorMessage("Failed to fetch reviews. Please try again later.");
-            }
-        };
         fetchReviews();
     }, []);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const apiCall = async (method, path, data = {}) => {
         try {
-            await axios.post(`${process.env.REACT_APP_API_URL}/submit/code`, { code: codeSubmission });
-            setCodeSubmission('');
-            setErrorMessage(""); // reset error message on successful operation
+            const response = await axios[method](`${API_URL}${path}`, data);
+            return response.data;
         } catch (error) {
-            console.error("Error submitting code:", error);
-            setErrorMessage("Failed to submit code. Please try again.");
+            console.error(`Error during ${path}:`, error);
+            setErrorMessage(`Failed at ${path}. Please try again.`);
+            throw error;
         }
     };
 
-    const handleSelectReview = (reviewId) => {
+    const fetchReviews = async () => {
+        const data = await apiCall('get', '/reviews/pending');
+        setPendingReviews(data);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        await apiCall('post', '/submit/code', { code: codeSubmission });
+        setCodeSubmission('');
+        setErrorMessage("");
+    };
+
+    const handleSelectReview = async (reviewId) => {
         setSelectedReview(pendingReviews.find(review => review.id === reviewId));
-        fetchComments(reviewId);
+        await fetchComments(reviewId);
     };
 
     const fetchComments = async (reviewId) => {
-        try {
-            const response = await axios.get(`${process.env.REACT_APP_API_URL}/reviews/${reviewId}/comments`);
-            setComments(response.data);
-            setErrorMessage(""); // reset error message on successful operation
-        } catch (error) {
-            console.error("Error fetching comments:", error);
-            setErrorMessage("Failed to fetch comments. Please try again.");
-        }
+        const data = await apiCall('get', `/reviews/${reviewId}/comments`);
+        setComments(data);
     };
 
     const handleCommentSubmit = async (reviewId, comment) => {
-        try {
-            await axios.post(`${process.env.REACT_APP_API_URL}/reviews/${reviewId}/comment`, { comment });
-            fetchComments(reviewId); // refresh comments to show the new one
-            setErrorMessage(""); // reset error message on successful operation
-        } catch (error) {
-            console.error("Error submitting comment:", error);
-            setErrorMessage("Failed to submit comment. Please try again.");
-        }
+        await apiCall('post', `/reviews/${reviewId}/comment`, { comment });
+        fetchComments(reviewId);
     };
 
     const markReviewAsComplete = async (reviewId) => {
-        try {
-            await axios.put(`${process.env.REACT_APP_API_URL}/reviews/${reviewId}/complete`);
-            setPendingReviews(pendingReviews.filter(review => review.id !== reviewId));
-            setErrorMessage(""); // reset error message on successful operation
-        } catch (error) {
-            console.error("Error marking review as complete:", error);
-            setErrorMessage("Failed to mark review as complete. Please try again.");
-        }
+        await apiCall('put', `/reviews/${reviewId}/complete`);
+        setPendingReviews(pendingReviews.filter(review => review.id !== reviewId));
     };
 
     return (
