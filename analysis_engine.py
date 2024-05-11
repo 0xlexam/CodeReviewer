@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 import json
 import requests
 from functools import lru_cache
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 load_dotenv()
 
@@ -16,9 +19,17 @@ API_KEY = os.getenv("API_KEY")
 
 @lru_cache(maxsize=None)
 def run_command(command):
+    logging.info(f"Running command: {command}")
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     stdout, stderr = process.communicate()
-    return stdout.decode('utf-8'), stderr.decode('utf-8'), process.returncode
+    stdout_decoded = stdout.decode('utf-8')
+    stderr_decoded = stderr.decode('utf-8')
+    returncode = process.returncode
+    if returncode == 0:
+        logging.info("Command executed successfully")
+    else:
+        logging.error(f"Command execution failed. Error: {stderr_decoded}")
+    return stdout_decoded, stderr_decoded, process.returncode
 
 def analyze_directory(directory_path):
     results = {}
@@ -51,16 +62,22 @@ def post_results(results):
         "Content-Type": "application/json",
         "Authorization": f"Bearer {API_KEY}"
     }
+    logging.info("Posting analysis results to the server")
     response = requests.post(RESULTS_ENDPOINT, headers=headers, data=json.dumps(results))
+    if response.status_code == 200:
+        logging.info("Results successfully posted")
+    else:
+        logging.error(f"Failed to post results. Status: {response.status_code}, Response: {response.text}")
     return response.status_code, response.text
 
 def main():
     code_directory_path = "/path/to/your/code"
+    logging.info(f"Starting analysis for directory: {code_directory_path}")
     analysis_results = analyze_directory(code_directory_path)
     status, response = post_results(analysis_results)
     
-    print(f"Response status: {status}")
-    print(f"Response content: {response}")
+    logging.info(f"Response status: {status}")
+    logging.info(f"Response content: {response}")
 
 if __name__ == "__main__":
     main()
