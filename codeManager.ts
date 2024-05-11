@@ -52,52 +52,72 @@ class CodeManager {
     }
 
     public addSnippet(language: string, content: string): string {
-        const id = this.generateId();
-        const newSnippet: CodeSnippet = {
-            id,
-            language,
-            content,
-            timestamp: Date.now(),
-            version: 1
-        };
-        this.snippets.set(id, [newSnippet]);
-        this.saveSnippets(id);
-        return id;
+        try {
+            const id = this.generateId();
+            const newSnippet: CodeSnippet = {
+                id,
+                language,
+                content,
+                timestamp: Date.now(),
+                version: 1
+            };
+            this.snippets.set(id, [newSnippet]);
+            this.saveSnippets(id);
+            return id;
+        } catch (error) {
+            console.error("Failed to add snippet: ", error);
+            return "";
+        }
     }
 
     public updateSnippet(id: string, newContent: string): boolean {
-        const snippetVersions = this.snippets.get(id);
-        if (!snippetVersions) return false;
-        const latestVersion = snippetVersions[snippetVersions.length - 1];
+        try {
+            const snippetVersions = this.snippets.get(id);
+            if (!snippetVersions) return false;
+            const latestVersion = snippetVersions[snippetVersions.length - 1];
 
-        const updatedSnippet: CodeSnippet = { ...latestVersion, content: newContent, version: latestVersion.version + 1, timestamp: Date.now() };
-        snippetVersions.push(updatedSnippet);
-        this.saveSnippets(id);
+            const updatedSnippet: CodeSnippet = { ...latestVersion, content: newContent, version: latestVersion.version + 1, timestamp: Date.now() };
+            snippetVersions.push(updatedSnippet);
+            this.saveSnippets(id);
 
-        return true;
+            return true;
+        } catch (error) {
+            console.error(`Failed to update snippet ${id}:`, error);
+            return false;
+        }
     }
 
     public fetchSnippet(id: string): CodeSnippet | null {
-        const snippetVersions = this.snippets.get(id);
-        if (!snippetVersions) return null;
-        return snippetVersions[snippetVersions.length - 1];
+        try {
+            const snippetVersions = this.snippets.get(id);
+            if (!snippetVersions) return null;
+            return snippetVersions[snippetVersions.length - 1];
+        } catch (error) {
+            console.error(`Failed to fetch snippet ${id}:`, error);
+            return null;
+        }
     }
 
     public fetchVersionHistory(id: string): CodeSnippet[] | null {
-        return this.snippets.get(id) || null;
+        try {
+            return this.snippets.get(id) || null;
+        } catch (error) {
+            console.error(`Failed to fetch version history for ${id}:`, error);
+            return null;
+        }
     }
 
     public deleteSnippet(id: string): boolean {
-        if (!this.snippets.has(id)) return false;
         try {
+            if (!this.snippets.has(id)) return false;
             this.snippets.delete(id);
             const filePath = path.join(this.storagePath, `${id}.json`);
             fs.unlinkSync(filePath);
+            return true;
         } catch (error) {
             console.error(`Failed to delete snippet ${id}:`, error);
             return false;
         }
-        return true;
     }
 }
 
