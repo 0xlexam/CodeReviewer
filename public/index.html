@@ -8,10 +8,45 @@
     <script crossorigin src="https://unpkg.com/react@your-version/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@your-version/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        :root {
+            --background-light: #f5f5f5;
+            --background-dark: #333;
+            --text-light: #333;
+            --text-dark: #f5f5f5;
+        }
+        body {
+            background-color: var(--background-light);
+            color: var(--text-light);
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark-mode {
+            background-color: var(--background-dark) !important;
+            color: var(--text-dark) !important;
+        }
+    </style>
 </head>
 <body>
     <div id="app"></div>
+    <button id="toggleDarkMode">Toggle Dark Mode</button>
     <script type="text/babel">
+      // Your existing React code goes here
+    </script>
+    <script>
+      function toggleDarkMode() {
+        document.body.classList.toggle('dark-mode');
+        var mode = document.body.classList.contains('dark-mode') ? 'dark' : 'light';
+        localStorage.setItem('theme', mode); // Save the current mode to localStorage
+      }
+
+      window.onload = function() {
+        const currentTheme = localStorage.getItem('theme') ? localStorage.getItem('theme') : null;
+        if (currentTheme) {
+            document.body.className = currentTheme === 'dark' ? 'dark-mode' : '';
+        }
+
+        document.getElementById('toggleDarkMode').addEventListener('click', toggleDarkMode);
+      }
     </script>
 </body>
 </html>
