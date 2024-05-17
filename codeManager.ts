@@ -10,119 +10,119 @@ interface CodeSnippet {
     version: number;
 }
 
-class CodeManager {
-    private storagePath: string;
-    private snippets: Map<string, CodeSnippet[]> = new Map();
+class SnippetManager {
+    private snippetsStoragePath: string;
+    private codeSnippets: Map<string, CodeSnippet[]> = new Map();
 
-    constructor(storagePath: string) {
-        this.storagePath = storagePath;
-        this.loadSnippets();
+    constructor(snippetsStoragePath: string) {
+        this.snippetsStoragePath = snippetsStoragePath;
+        this.loadAllSnippets();
     }
 
-    private generateId(): string {
+    private generateUniqueId(): string {
         return crypto.randomBytes(16).toString('hex');
     }
 
-    private loadSnippets(): void {
+    private loadAllSnippets(): void {
         try {
-            const files = fs.readdirSync(this.storagePath);
-            files.forEach(file => {
+            const snippetFiles = fs.readdirSync(this.snippetsStoragePath);
+            snippetFiles.forEach(file => {
                 try {
-                    const content = fs.readFileSync(path.join(this.storagePath, file), 'utf8');
-                    const snippets: CodeSnippet[] = JSON.parse(content);
-                    this.snippets.set(file.replace('.json', ''), snippets);
+                    const snippetContent = fs.readFileSync(path.join(this.snippetsStoragePath, file), 'utf8');
+                    const snippets: CodeSnippet[] = JSON.parse(snippetContent);
+                    this.codeSnippets.set(file.replace('.json', ''), snippets);
                 } catch (error) {
-                    console.error(`Failed to read or parse ${file}:`, error);
+                    console.error(`Failed to read or parse snippet file ${file}:`, error);
                 }
             });
         } catch (error) {
-            console.error("Failed to load snippets directory: ", error);
+            console.error("Failed to load snippet files: ", error);
         }
     }
 
-    private saveSnippets(id: string): void {
+    private persistSnippets(fileId: string): void {
         try {
-            if (this.snippets.has(id)) {
-                const filePath = path.join(this.storagePath, `${id}.json`);
-                fs.writeFileSync(filePath, JSON.stringify(this.snippets.get(id)), 'utf8');
+            if (this.codeSnippets.has(fileId)) {
+                const filePath = path.join(this.snippetsStoragePath, `${fileId}.json`);
+                fs.writeFileSync(filePath, JSON.stringify(this.codeSnippets.get(fileId)), 'utf8');
             }
         } catch (error) {
-            console.error(`Failed to save snippets for id ${id}:`, error);
+            console.error(`Failed to save snippets for fileId ${fileId}:`, error);
         }
     }
 
-    public addSnippet(language: string, content: string): string {
+    public addNewSnippet(language: string, content: string): string {
         try {
-            const id = this.generateId();
+            const snippetId = this.generateUniqueId();
             const newSnippet: CodeSnippet = {
-                id,
+                id: snippetId,
                 language,
                 content,
                 timestamp: Date.now(),
                 version: 1
             };
-            this.snippets.set(id, [newSnippet]);
-            this.saveSnippets(id);
-            return id;
+            this.codeSnippets.set(snippetId, [newSnippet]);
+            this.persistSnippets(snippetId);
+            return snippetId;
         } catch (error) {
-            console.error("Failed to add snippet: ", error);
+            console.error("Failed to add new snippet: ", error);
             return "";
         }
     }
 
-    public updateSnippet(id: string, newContent: string): boolean {
+    public updateExistingSnippet(snippetId: string, updatedContent: string): boolean {
         try {
-            const snippetVersions = this.snippets.get(id);
-            if (!snippetVersions) return false;
-            const latestVersion = snippetVersions[snippetVersions.length - 1];
+            const existingSnippetVersions = this.codeSnippets.get(snippetId);
+            if (!existingSnippetVersions) return false;
+            const latestVersion = existingSnippetVersions[existingSnippetVersions.length - 1];
 
-            const updatedSnippet: CodeSnippet = { ...latestVersion, content: newContent, version: latestVersion.version + 1, timestamp: Date.now() };
-            snippetVersions.push(updatedSnippet);
-            this.saveSnippets(id);
+            const updatedSnippet: CodeSnippet = { ...latestVersion, content: updatedContent, version: latestVersion.version + 1, timestamp: Date.now() };
+            existingSnippetVersions.push(updatedSnippet);
+            this.persistSnippets(snippetId);
 
             return true;
         } catch (error) {
-            console.error(`Failed to update snippet ${id}:`, error);
+            console.error(`Failed to update snippet ${snippetId}:`, error);
             return false;
         }
     }
 
-    public fetchSnippet(id: string): CodeSnippet | null {
+    public retrieveLatestSnippet(snippetId: string): CodeSnippet | null {
         try {
-            const snippetVersions = this.snippets.get(id);
+            const snippetVersions = this.codeSnippets.get(snippetId);
             if (!snippetVersions) return null;
             return snippetVersions[snippetVersions.length - 1];
         } catch (error) {
-            console.error(`Failed to fetch snippet ${id}:`, error);
+            console.error(`Failed to retrieve latest snippet ${snippetId}:`, error);
             return null;
         }
     }
 
-    public fetchVersionHistory(id: string): CodeSnippet[] | null {
+    public retrieveSnippetHistory(snippetId: string): CodeSnippet[] | null {
         try {
-            return this.snippets.get(id) || null;
+            return this.codeSnippets.get(snippetId) || null;
         } catch (error) {
-            console.error(`Failed to fetch version history for ${id}:`, error);
+            console.error(`Failed to retrieve snippet history for ${snippetId}:`, error);
             return null;
         }
     }
 
-    public deleteSnippet(id: string): boolean {
+    public removeSnippet(snippetId: string): boolean {
         try {
-            if (!this.snippets.has(id)) return false;
-            this.snippets.delete(id);
-            const filePath = path.join(this.storagePath, `${id}.json`);
+            if (!this.codeSnippets.has(snippetId)) return false;
+            this.codeSnippets.delete(snippetId);
+            const filePath = path.join(this.snippetsStoragePath, `${snippetId}.json`);
             fs.unlinkSync(filePath);
             return true;
         } catch (error) {
-            console.error(`Failed to delete snippet ${id}:`, error);
+            console.error(`Failed to remove snippet ${snippetId}:`, error);
             return false;
         }
     }
 }
 
-const codeManager = new CodeManager('./snippets');
-const snippetId = codeManager.addSnippet('typescript', 'console.log("Hello, World!")');
-console.log(codeManager.fetchSnippet(snippetId));
-codeManager.updateSnippet(snippetId, 'console.log("Hello, TypeScript!")');
-console.log(codeManager.fetchVersionHistory(snippetId));
+const snippetManager = new SnippetManager('./snippets');
+const newSnippetId = snippetManager.addNewSnippet('typescript', 'console.log("Hello, World!")');
+console.log(snippetManager.retrieveLatestSnippet(newSnippetId));
+snippetManager.updateExistingSnippet(newSnippetId, 'console.log("Hello, TypeScript!")');
+console.log(snippetManager.retrieveSnippetHistory(newSnippetId));
