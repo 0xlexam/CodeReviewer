@@ -36,7 +36,7 @@ class SnippetManager {
                 }
             });
         } catch (error) {
-            console.error("Failed to load snippet files: ", error);
+            console.error('Failed to load snippet files: ', error);
         }
     }
 
@@ -65,8 +65,8 @@ class SnippetManager {
             this.persistSnippets(snippetId);
             return snippetId;
         } catch (error) {
-            console.error("Failed to add new snippet: ", error);
-            return "";
+            console.error('Failed to add new snippet: ', error);
+            return '';
         }
     }
 
@@ -76,7 +76,12 @@ class SnippetManager {
             if (!existingSnippetVersions) return false;
             const latestVersion = existingSnippetVersions[existingSnippetVersions.length - 1];
 
-            const updatedSnippet: CodeSnippet = { ...latestVersion, content: updatedContent, version: latestVersion.version + 1, timestamp: Date.now() };
+            const updatedSnippet: CodeSnippet = {
+                ...latestVersion,
+                content: updatedContent,
+                version: latestVersion.version + 1,
+                timestamp: Date.now()
+            };
             existingSnippetVersions.push(updatedSnippet);
             this.persistSnippets(snippetId);
 
